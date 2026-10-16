@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg) [![Latest Stable Version](https://img.shields.io/packagist/v/ernestdefoe/shelf.svg)](https://packagist.org/packages/ernestdefoe/shelf)
 
-A [Flarum 2](https://flarum.org) companion to [Marquee](https://github.com/ernestdefoe/marquee). Every movie, TV show, game, album and book Marquee links becomes something members can rate, log and list: half-star ratings, a "watched / read / played / listened" log with dates, a want-to list, and public lists in their own order. Profiles get a Shelf tab, and the forum gets a top-rated view.
+A [Flarum 2](https://flarum.org) companion to [Marquee](https://github.com/ernestdefoe/marquee). Every movie, TV show, game, album and book Marquee links becomes something members can rate, log, collect and list: half-star ratings, a "watched / read / played / listened" log with dates, a want-to list, a collection of what they own, and public lists in their own order. Profiles get a Shelf tab, and the forum gets a top-rated view.
 
 ![Rating and shelving from a Marquee card](https://raw.githubusercontent.com/ernestdefoe/shelf/main/.github/screenshots/card.jpg)
 
