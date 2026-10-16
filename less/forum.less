@@ -85,6 +85,15 @@
   }
 }
 
+// The card clips what overflows it, so the menu opens upwards into the card.
+@media (min-width: 768px) {
+  .MarqueeHero .ShelfControl-menu .Dropdown-menu {
+    top: auto;
+    bottom: 100%;
+    margin: 0 0 6px;
+  }
+}
+
 .MarqueeHero-links .ShelfControl-button.is-on {
   background: rgba(245, 197, 24, 0.22);
 }

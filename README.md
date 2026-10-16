@@ -19,6 +19,8 @@ A [Flarum 2](https://flarum.org) companion to [Marquee](https://github.com/ernes
 
 ![A member's Shelf tab](https://raw.githubusercontent.com/ernestdefoe/shelf/main/.github/screenshots/profile.jpg)
 
+![A member's collection](https://raw.githubusercontent.com/ernestdefoe/shelf/main/.github/screenshots/collection.jpg)
+
 ![A public list](https://raw.githubusercontent.com/ernestdefoe/shelf/main/.github/screenshots/list.jpg)
 
 ![Top rated this month](https://raw.githubusercontent.com/ernestdefoe/shelf/main/.github/screenshots/top-rated.jpg)
