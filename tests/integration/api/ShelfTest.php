@@ -209,6 +209,38 @@ class ShelfTest extends TestCase
     }
 
     #[Test]
+    public function a_long_shelf_costs_no_more_queries_than_a_short_one(): void
+    {
+        $queries = 0;
+        $counting = false;
+        $this->database()->listen(function () use (&$queries, &$counting) {
+            $queries += $counting ? 1 : 0;
+        });
+
+        $count = function (int $entries) use (&$queries, &$counting): int {
+            $db = $this->database();
+            $db->table('shelf_entries')->delete();
+            $db->table('marquee_media')->where('id', '>=', 100)->delete();
+            $now = Carbon::now();
+            for ($id = 100; $id < 100 + $entries; $id++) {
+                $db->table('marquee_media')->insert(['id' => $id, 'kind' => 'movie', 'external_id' => "x$id", 'title' => "Film $id", 'fetched_at' => $now, 'data' => '{}']);
+                $db->table('shelf_entries')->insert(['user_id' => 3, 'media_id' => $id, 'rating' => 6, 'created_at' => $now, 'updated_at' => $now, 'rated_at' => $now]);
+            }
+
+            [$queries, $counting] = [0, true];
+            $this->get('/api/shelf-entries', ['filter' => ['user' => '3']]);
+            $counting = false;
+
+            return $queries;
+        };
+
+        // The first request also loads groups, permissions and the like.
+        $count(1);
+
+        $this->assertSame($count(1), $count(20));
+    }
+
+    #[Test]
     public function lists_add_remove_and_reorder_titles(): void
     {
         $created = $this->list(3, ['name' => 'Favourites', 'add' => 1]);

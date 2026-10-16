@@ -7,3 +7,4 @@ tests/integration/tmp
 .phpunit.cache
 composer.dev.json
 composer.dev.lock
+tests/.phpunit.result.cache

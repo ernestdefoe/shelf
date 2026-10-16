@@ -46,7 +46,7 @@ class EntryResource extends AbstractDatabaseResource
                 ->defaultInclude(['media'])
                 ->defaultSort('-updatedAt')
                 ->eagerLoad(['media'])
-                ->beforeSerialization(fn (Context $context, iterable $models) => $this->links->prime($context, collect($models)->pluck('media_id'))),
+                ->beforeSerialization(fn (Context $context, array $results) => $this->links->prime($context, collect($results['models'])->pluck('media_id'))),
             Endpoint\Create::make()
                 ->authenticated()
                 ->can('ernestdefoe-shelf.use')

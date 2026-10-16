@@ -11,43 +11,44 @@ use WeakMap;
 
 /**
  * Where a title links to: the busiest discussion about it that the viewer can
- * see. Loaded for every title on the page in one query, and kept per request
- * so one viewer's answer never reaches another.
+ * see. Loaded for every title on the page in one query, and kept per actor
+ * (one object per request; the request object itself is cloned between the
+ * endpoint and the fields) so one viewer's answer never reaches another.
  */
 class DiscussionLinks
 {
     /**
      * Shared by every instance, so a resource can load what a field reads.
      *
-     * @var WeakMap<object, array<int, string|null>>|null
+     * @var WeakMap<User, array<int, string|null>>|null
      */
-    private static ?WeakMap $byRequest = null;
+    private static ?WeakMap $byActor = null;
 
     public function __construct(private SlugManager $slugs)
     {
-        self::$byRequest ??= new WeakMap();
+        self::$byActor ??= new WeakMap();
     }
 
     /** @param Collection<int, mixed> $mediaIds */
     public function prime(Context $context, Collection $mediaIds): void
     {
-        $known = self::$byRequest[$context->request] ?? [];
+        $known = self::$byActor[$context->getActor()] ?? [];
         $missing = $mediaIds->map(fn ($id) => (int) $id)->unique()->reject(fn ($id) => array_key_exists($id, $known))->values();
 
         if ($missing->isNotEmpty()) {
             $known += $this->load($context->getActor(), $missing->all());
         }
 
-        self::$byRequest[$context->request] = $known;
+        self::$byActor[$context->getActor()] = $known;
     }
 
     public function slugFor(Context $context, int $mediaId): ?string
     {
-        if (! array_key_exists($mediaId, self::$byRequest[$context->request] ?? [])) {
+        if (! array_key_exists($mediaId, self::$byActor[$context->getActor()] ?? [])) {
             $this->prime($context, collect([$mediaId]));
         }
 
-        return self::$byRequest[$context->request][$mediaId];
+        return self::$byActor[$context->getActor()][$mediaId];
     }
 
     /**
