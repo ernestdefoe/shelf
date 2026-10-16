@@ -109,7 +109,7 @@ class EntryResource extends AbstractDatabaseResource
             $model->done_on = null;
         }
 
-        if (! $model->rating && ! $model->status) {
+        if (! $model->rating && ! $model->status && ! $model->owned) {
             throw new ValidationException(['rating' => $this->translator->trans('ernestdefoe-shelf.api.empty_entry')]);
         }
 
@@ -128,6 +128,8 @@ class EntryResource extends AbstractDatabaseResource
                 ->nullable()
                 ->writable()
                 ->in(Entry::STATUSES),
+            Schema\Boolean::make('owned')
+                ->writable(),
             Schema\Date::make('doneOn')
                 ->nullable()
                 ->writable()

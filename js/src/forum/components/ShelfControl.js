@@ -31,7 +31,7 @@ export default class ShelfControl extends Component {
     const optimistic = { ...(mine || {}), ...changes };
     const after = 'rating' in changes ? reaverage(before, mine?.rating, changes.rating) : before;
 
-    media.pushAttributes({ shelf: { ...after, mine: optimistic.rating || optimistic.status ? optimistic : null } });
+    media.pushAttributes({ shelf: { ...after, mine: optimistic.rating || optimistic.status || optimistic.owned ? optimistic : null } });
     this.saving = true;
 
     return saveEntry(media.id(), mine, changes)
@@ -66,9 +66,17 @@ export default class ShelfControl extends Component {
         {canShelve() ? (
           <Dropdown
             className="ShelfControl-menu"
-            buttonClassName={mine?.status ? 'Button ShelfControl-button is-on' : 'Button ShelfControl-button'}
-            icon={mine?.status === 'done' ? 'fas fa-check' : mine?.status === 'want' ? 'fas fa-bookmark' : 'fas fa-layer-group'}
-            label={mine?.status ? t(`status.${mine.status}_${v}`) : t('card.add_to_shelf')}
+            buttonClassName={mine?.status || mine?.owned ? 'Button ShelfControl-button is-on' : 'Button ShelfControl-button'}
+            icon={
+              mine?.status === 'done'
+                ? 'fas fa-check'
+                : mine?.status === 'want'
+                  ? 'fas fa-bookmark'
+                  : mine?.owned
+                    ? 'fas fa-box-archive'
+                    : 'fas fa-layer-group'
+            }
+            label={mine?.status ? t(`status.${mine.status}_${v}`) : mine?.owned ? t('status.owned') : t('card.add_to_shelf')}
             accessibleToggleLabel={text('card.add_to_shelf')}
           >
             {this.menuItems(mine, v)}
@@ -95,6 +103,9 @@ export default class ShelfControl extends Component {
       >
         {mine?.status === 'done' && mine.doneOn ? t(`menu.done_on_${v}`, { date: date(mine.doneOn) }) : t(`menu.log_${v}`)}
       </Button>,
+      <Button icon={mine?.owned ? 'fas fa-check' : 'fas fa-box-archive'} onclick={() => this.change({ owned: !mine?.owned })}>
+        {t('menu.collection')}
+      </Button>,
       <Button icon="fas fa-list" onclick={() => app.modal.show(() => import('./AddToListModal'), { media })}>
         {t('menu.add_to_list')}
       </Button>,
@@ -103,7 +114,7 @@ export default class ShelfControl extends Component {
     if (mine) {
       items.push(
         <Separator />,
-        <Button icon="fas fa-times" onclick={() => this.change({ rating: null, status: null, doneOn: null })}>
+        <Button icon="fas fa-times" onclick={() => this.change({ rating: null, status: null, doneOn: null, owned: false })}>
           {t('menu.remove')}
         </Button>
       );

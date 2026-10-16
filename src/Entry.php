@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $rating
  * @property string|null $status
  * @property Carbon|null $done_on
+ * @property bool $owned
  * @property Carbon|null $rated_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
@@ -35,6 +36,7 @@ class Entry extends AbstractModel
         'user_id' => 'integer',
         'media_id' => 'integer',
         'rating' => 'integer',
+        'owned' => 'boolean',
         'done_on' => 'date',
         'rated_at' => 'datetime',
         'created_at' => 'datetime',

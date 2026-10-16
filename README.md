@@ -10,6 +10,7 @@ A [Flarum 2](https://flarum.org) companion to [Marquee](https://github.com/ernes
 
 - **Rate from the card.** Every Marquee card gets the members' average, your own stars (half stars, by pointer, touch or keyboard) and an **Add to shelf** menu.
 - **Log it with a date.** Mark a title as watched, read, played or listened, on today or any earlier date, or as one you want to get to. The words follow the kind of title.
+- **Your collection.** Mark the titles you own (the games on your shelf, the box sets, the books) with **In my collection**, on its own or alongside a rating. The Shelf tab has a Collection filter, so a member's collection is one click from their profile.
 - **Public lists.** Put titles on lists such as "Best of the decade", straight from the card or by starting a new list there. Each list has its own page; its owner drags titles into order, removes them, renames or deletes it.
 - **A Shelf tab on every profile.** The member's lists, then everything they rated or logged, filterable by rated, logged and want-to.
 - **Top rated.** `/shelf` (linked from the forum's sidebar) lists the best-rated titles this month, this year or ever, by kind. A title needs a minimum number of ratings in the period (two by default, set in the admin panel), so one member's five stars can't top it.

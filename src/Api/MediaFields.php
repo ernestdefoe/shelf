@@ -57,6 +57,7 @@ class MediaFields
                 'id' => (string) $mine->id,
                 'rating' => $mine->rating,
                 'status' => $mine->status,
+                'owned' => $mine->owned,
                 'doneOn' => $mine->done_on?->toDateString(),
             ] : null,
         ];

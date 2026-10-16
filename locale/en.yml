@@ -6,7 +6,7 @@ ernestdefoe-shelf:
     permission_moderate: Delete anyone's shelf lists
 
   api:
-    empty_entry: Give it a rating or a status first.
+    empty_entry: Give it a rating, a status or add it to your collection first.
     too_many_lists: "You can keep up to {count} lists."
     list_full: "A list can hold up to {count} titles."
 
@@ -32,6 +32,7 @@ ernestdefoe-shelf:
       done_read: Read
       done_play: Played
       done_listen: Listened
+      owned: In my collection
 
     card:
       add_to_shelf: Add to shelf
@@ -56,6 +57,7 @@ ernestdefoe-shelf:
       done_on_read: "Read {date} (change)"
       done_on_play: "Played {date} (change)"
       done_on_listen: "Listened {date} (change)"
+      collection: In my collection
       add_to_list: Add to a list…
       remove: Remove from my shelf
 
@@ -98,6 +100,7 @@ ernestdefoe-shelf:
       filter_rated: Rated
       filter_done: Logged
       filter_want: Want to
+      filter_owned: Collection
       no_lists: No lists yet.
       no_lists_own: You have no lists yet. Start one here, or from any title's card.
       empty: Nothing on this shelf yet.

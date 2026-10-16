@@ -5,6 +5,7 @@ export class Entry extends Model {}
 Object.assign(Entry.prototype, {
   rating: Model.attribute('rating'),
   status: Model.attribute('status'),
+  owned: Model.attribute('owned'),
   doneOn: Model.attribute('doneOn'),
   ratedAt: Model.attribute('ratedAt', Model.transformDate),
   updatedAt: Model.attribute('updatedAt', Model.transformDate),

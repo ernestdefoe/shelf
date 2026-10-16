@@ -15,6 +15,11 @@ export default function EntryCard(entry) {
       <div className="ShelfCard-body">
         <b className="ShelfCard-title">{titleOf(media)}</b>
         {entry.rating() ? <Stars value={entry.rating()} size="small" /> : null}
+        {entry.owned() ? (
+          <span className="ShelfCard-status ShelfCard-status--owned">
+            <i className="fas fa-box-archive" aria-hidden="true" /> {t('status.owned')}
+          </span>
+        ) : null}
         {entry.status() ? (
           <span className={`ShelfCard-status ShelfCard-status--${entry.status()}`}>
             {entry.status() === 'done' && entry.doneOn()

@@ -8,7 +8,7 @@ import ListCard from './ListCard';
 import ListEditModal from './ListEditModal';
 import { t } from '../util';
 
-const FILTERS = ['all', 'rated', 'done', 'want'];
+const FILTERS = ['all', 'rated', 'done', 'want', 'owned'];
 const PAGE = 24;
 
 /** A member's shelf: their lists, then everything they rated or logged. */

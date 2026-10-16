@@ -22,12 +22,14 @@ class EntryStatusFilter implements FilterInterface
     public function filter(SearchState $state, string|array $value, bool $negate): void
     {
         /** @var DatabaseSearchState $state */
-        // rated | want | done
+        // rated | owned | want | done
         $value = $this->asString($value);
         $query = $state->getQuery();
 
         if ($value === 'rated') {
             $negate ? $query->whereNull('shelf_entries.rating') : $query->whereNotNull('shelf_entries.rating');
+        } elseif ($value === 'owned') {
+            $query->where('shelf_entries.owned', ! $negate);
         } else {
             $query->where('shelf_entries.status', $negate ? '!=' : '=', $value);
         }

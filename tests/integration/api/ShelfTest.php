@@ -165,6 +165,21 @@ class ShelfTest extends TestCase
     }
 
     #[Test]
+    public function a_title_can_be_in_your_collection_on_its_own(): void
+    {
+        $owned = $this->rate(3, 4, ['owned' => true]);
+        $this->assertSame(201, $owned->getStatusCode(), (string) $owned->getBody());
+        $this->assertTrue($this->json($owned)['data']['attributes']['owned']);
+        $this->rate(3, 1, ['rating' => 8]);
+
+        $collection = $this->json($this->get('/api/shelf-entries', ['filter' => ['user' => '3', 'status' => 'owned']]));
+        $this->assertSame(['4'], array_map(fn ($entry) => $entry['relationships']['media']['data']['id'], $collection['data']));
+
+        // Taking it out of the collection leaves nothing to keep.
+        $this->assertSame(422, $this->rate(3, 4, ['owned' => false])->getStatusCode());
+    }
+
+    #[Test]
     public function the_card_carries_the_average_and_the_viewers_own_entry(): void
     {
         $this->rate(3, 1, ['rating' => 8]);

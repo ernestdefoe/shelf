@@ -8,9 +8,9 @@ const url = (path) => `${app.forum.attribute('apiUrl')}/${path}`;
  * or null once it is removed.
  */
 export function saveEntry(mediaId, mine, changes) {
-  const next = { rating: mine?.rating ?? null, status: mine?.status ?? null, doneOn: mine?.doneOn ?? null, ...changes };
+  const next = { rating: mine?.rating ?? null, status: mine?.status ?? null, doneOn: mine?.doneOn ?? null, owned: !!mine?.owned, ...changes };
 
-  if (!next.rating && !next.status) {
+  if (!next.rating && !next.status && !next.owned) {
     if (!mine) return Promise.resolve(null);
     return app.request({ method: 'DELETE', url: url(`shelf-entries/${mine.id}`) }).then(() => {
       const cached = app.store.getById('shelf-entries', mine.id);
@@ -26,14 +26,14 @@ export function saveEntry(mediaId, mine, changes) {
       body: {
         data: {
           type: 'shelf-entries',
-          attributes: { rating: next.rating, status: next.status, doneOn: next.status === 'done' ? next.doneOn : null },
+          attributes: { rating: next.rating, status: next.status, owned: next.owned, doneOn: next.status === 'done' ? next.doneOn : null },
           relationships: { media: { data: { type: 'marquee-media', id: String(mediaId) } } },
         },
       },
     })
     .then((payload) => {
       const entry = app.store.pushPayload(payload);
-      return { id: entry.id(), rating: entry.rating(), status: entry.status(), doneOn: entry.doneOn() };
+      return { id: entry.id(), rating: entry.rating(), status: entry.status(), owned: entry.owned(), doneOn: entry.doneOn() };
     });
 }
 
