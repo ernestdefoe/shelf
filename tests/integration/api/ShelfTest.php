@@ -116,6 +116,10 @@ class ShelfTest extends TestCase
         $this->assertSame(422, $this->rate(3, 1, ['status' => 'done', 'doneOn' => Carbon::now()->addDays(3)->toDateString()])->getStatusCode());
         // Nothing to keep.
         $this->assertSame(422, $this->rate(3, 1, [])->getStatusCode());
+        // No such title.
+        $missing = $this->rate(3, 999, ['rating' => 6])->getStatusCode();
+        $this->assertGreaterThanOrEqual(400, $missing);
+        $this->assertLessThan(500, $missing);
     }
 
     #[Test]
