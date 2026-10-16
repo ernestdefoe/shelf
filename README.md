@@ -4,6 +4,8 @@
 
 A [Flarum 2](https://flarum.org) companion to [Marquee](https://github.com/ernestdefoe/marquee). Every movie, TV show, game, album and book Marquee links becomes something members can rate, log and list: half-star ratings, a "watched / read / played / listened" log with dates, a want-to list, and public lists in their own order. Profiles get a Shelf tab, and the forum gets a top-rated view.
 
+![Rating and shelving from a Marquee card](https://raw.githubusercontent.com/ernestdefoe/shelf/main/.github/screenshots/card.jpg)
+
 ## Features
 
 - **Rate from the card.** Every Marquee card gets the members' average, your own stars (half stars, by pointer, touch or keyboard) and an **Add to shelf** menu.
@@ -13,6 +15,12 @@ A [Flarum 2](https://flarum.org) companion to [Marquee](https://github.com/ernes
 - **Top rated.** `/shelf` (linked from the forum's sidebar) lists the best-rated titles this month, this year or ever, by kind. A title needs a minimum number of ratings in the period (two by default, set in the admin panel), so one member's five stars can't top it.
 - **A widget, if you use one.** The top-rated list is offered to [Bespoke](https://github.com/ernestdefoe/bespoke) and to [FoF Forum Widgets](https://github.com/FriendsOfFlarum/forum-widgets-core). Neither is needed: the page and its sidebar link are always there.
 - **Translatable.** Every word on screen comes from the language files.
+
+![A member's Shelf tab](https://raw.githubusercontent.com/ernestdefoe/shelf/main/.github/screenshots/profile.jpg)
+
+![A public list](https://raw.githubusercontent.com/ernestdefoe/shelf/main/.github/screenshots/list.jpg)
+
+![Top rated this month](https://raw.githubusercontent.com/ernestdefoe/shelf/main/.github/screenshots/top-rated.jpg)
 
 ## Installation
 
