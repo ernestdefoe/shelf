@@ -46,7 +46,7 @@ class EntryResource extends AbstractDatabaseResource
                 ->defaultInclude(['media'])
                 ->defaultSort('-updatedAt')
                 ->eagerLoad(['media'])
-                ->beforeSerialization(fn (Context $context, array $results) => $this->links->prime($context, collect($results['models'])->pluck('media_id'))),
+                ->beforeSerialization($this->primeLinks(...)),
             Endpoint\Create::make()
                 ->authenticated()
                 ->can('ernestdefoe-shelf.use')
@@ -59,6 +59,21 @@ class EntryResource extends AbstractDatabaseResource
                 ->authenticated()
                 ->can('delete'),
         ];
+    }
+
+    /**
+     * Every title on the page and the discussion it links to, in one go.
+     *
+     * @param array{models: iterable<Entry>} $results
+     */
+    private function primeLinks(Context $context, array $results): void
+    {
+        $ids = [];
+        foreach ($results['models'] as $entry) {
+            $ids[] = $entry->media_id;
+        }
+
+        $this->links->prime($context, collect($ids));
     }
 
     /** Upsert: an existing entry for this member and title is the one written to. */
