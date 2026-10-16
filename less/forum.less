@@ -6,7 +6,9 @@
   display: inline-block;
   // The gold row is a share of this box, so it must be exactly the glyphs wide.
   width: max-content;
-  align-self: flex-start;
+  // No align-self: flex-start. In a row (Marquee's hero buttons) it pinned the
+  // stars to the top; the width above already stops a column stretching them
+  // (ClaudiusH, 2026-10-16).
   font-size: 20px;
   line-height: 1;
   letter-spacing: 2px;
@@ -434,5 +436,15 @@
     .FormControl {
       flex: 1;
     }
+  }
+}
+
+// A title that names a film or book: the name in italics so it reads apart from
+// the sentence around it, and the lines balanced so a wrap never strands one
+// word (ClaudiusH, 2026-10-16).
+.ShelfAddModal,
+.ShelfLogModal {
+  .Modal-header h3 {
+    text-wrap: balance;
   }
 }

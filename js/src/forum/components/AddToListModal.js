@@ -24,44 +24,46 @@ export default class AddToListModal extends FormModal {
   }
 
   title() {
-    return t('add.title', { title: titleOf(this.attrs.media) });
+    return t('add.title', { title: <em>{titleOf(this.attrs.media)}</em> });
   }
 
   content() {
     return (
       <div className="Modal-body">
-        {this.lists === null ? (
-          <LoadingIndicator />
-        ) : this.lists.length ? (
-          <ul className="ShelfAddModal-lists">
-            {this.lists.map((list) => (
-              <li>
-                <Button
-                  className="Button Button--block"
-                  icon={this.added.has(list.id()) ? 'fas fa-check' : 'fas fa-plus'}
-                  disabled={this.added.has(list.id()) || this.loading}
-                  onclick={() => this.add(list)}
-                >
-                  {list.name()} <small>{t('lists.items', { count: list.itemCount() })}</small>
-                </Button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        <div className="Form-group">
-          <label for="shelf-new-list">{t('add.new_list')}</label>
-          <div className="ShelfAddModal-new">
-            <input
-              id="shelf-new-list"
-              className="FormControl"
-              maxlength="100"
-              placeholder={text('add.new_list_placeholder')}
-              value={this.name}
-              oninput={(e) => (this.name = e.target.value)}
-            />
-            <Button type="submit" className="Button Button--primary" loading={this.loading} disabled={!this.name.trim()}>
-              {t('add.create')}
-            </Button>
+        <div className="Form">
+          {this.lists === null ? (
+            <LoadingIndicator />
+          ) : this.lists.length ? (
+            <ul className="ShelfAddModal-lists">
+              {this.lists.map((list) => (
+                <li>
+                  <Button
+                    className="Button Button--block"
+                    icon={this.added.has(list.id()) ? 'fas fa-check' : 'fas fa-plus'}
+                    disabled={this.added.has(list.id()) || this.loading}
+                    onclick={() => this.add(list)}
+                  >
+                    {list.name()} <small>{t('lists.items', { count: list.itemCount() })}</small>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <div className="Form-group">
+            <label for="shelf-new-list">{t('add.new_list')}</label>
+            <div className="ShelfAddModal-new">
+              <input
+                id="shelf-new-list"
+                className="FormControl"
+                maxlength="100"
+                placeholder={text('add.new_list_placeholder')}
+                value={this.name}
+                oninput={(e) => (this.name = e.target.value)}
+              />
+              <Button type="submit" className="Button Button--primary" loading={this.loading} disabled={!this.name.trim()}>
+                {t('add.create')}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

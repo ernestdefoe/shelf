@@ -24,32 +24,34 @@ export default class ListEditModal extends FormModal {
   content() {
     return (
       <div className="Modal-body">
-        <div className="Form-group">
-          <label for="shelf-list-name">{t('lists.name_label')}</label>
-          <input
-            id="shelf-list-name"
-            className="FormControl"
-            maxlength="100"
-            required
-            value={this.name}
-            oninput={(e) => (this.name = e.target.value)}
-          />
-        </div>
-        <div className="Form-group">
-          <label for="shelf-list-description">{t('lists.description_label')}</label>
-          <textarea
-            id="shelf-list-description"
-            className="FormControl"
-            rows="3"
-            maxlength="1000"
-            value={this.description}
-            oninput={(e) => (this.description = e.target.value)}
-          />
-        </div>
-        <div className="Form-group">
-          <Button type="submit" className="Button Button--primary Button--block" loading={this.loading} disabled={!this.name.trim()}>
-            {t('lists.save')}
-          </Button>
+        <div className="Form">
+          <div className="Form-group">
+            <label for="shelf-list-name">{t('lists.name_label')}</label>
+            <input
+              id="shelf-list-name"
+              className="FormControl"
+              maxlength="100"
+              required
+              value={this.name}
+              oninput={(e) => (this.name = e.target.value)}
+            />
+          </div>
+          <div className="Form-group">
+            <label for="shelf-list-description">{t('lists.description_label')}</label>
+            <textarea
+              id="shelf-list-description"
+              className="FormControl"
+              rows="3"
+              maxlength="1000"
+              value={this.description}
+              oninput={(e) => (this.description = e.target.value)}
+            />
+          </div>
+          <div className="Form-group">
+            <Button type="submit" className="Button Button--primary Button--block" loading={this.loading} disabled={!this.name.trim()}>
+              {t('lists.save')}
+            </Button>
+          </div>
         </div>
       </div>
     );
