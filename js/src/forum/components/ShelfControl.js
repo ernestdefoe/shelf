@@ -7,7 +7,7 @@ import abbreviateNumber from 'flarum/common/utils/abbreviateNumber';
 import Stars from './Stars';
 import { saveEntry } from '../api';
 import { reaverage } from '../rating';
-import { t, text, verb, canShelve, date } from '../util';
+import { t, text, verb, canShelve, date, curioHandlesCollections } from '../util';
 
 /**
  * On a Marquee card: the members' average, the viewer's own stars, and the
@@ -51,6 +51,8 @@ export default class ShelfControl extends Component {
     const mine = shelf.mine;
     const kind = media.kind();
     const v = verb(kind);
+    // Ownership is Curio's when it is installed.
+    const owned = !!mine?.owned && !curioHandlesCollections();
 
     return (
       <div className="ShelfControl">
@@ -66,27 +68,27 @@ export default class ShelfControl extends Component {
         {canShelve() ? (
           <Dropdown
             className="ShelfControl-menu"
-            buttonClassName={mine?.status || mine?.owned ? 'Button ShelfControl-button is-on' : 'Button ShelfControl-button'}
+            buttonClassName={mine?.status || owned ? 'Button ShelfControl-button is-on' : 'Button ShelfControl-button'}
             icon={
               mine?.status === 'done'
                 ? 'fas fa-check'
                 : mine?.status === 'want'
                   ? 'fas fa-bookmark'
-                  : mine?.owned
+                  : owned
                     ? 'fas fa-box-archive'
                     : 'fas fa-layer-group'
             }
-            label={mine?.status ? t(`status.${mine.status}_${v}`) : mine?.owned ? t('status.owned') : t('card.add_to_shelf')}
+            label={mine?.status ? t(`status.${mine.status}_${v}`) : owned ? t('status.owned') : t('card.add_to_shelf')}
             accessibleToggleLabel={text('card.add_to_shelf')}
           >
-            {this.menuItems(mine, v)}
+            {this.menuItems(mine, v, owned)}
           </Dropdown>
         ) : null}
       </div>
     );
   }
 
-  menuItems(mine, v) {
+  menuItems(mine, v, owned) {
     const media = this.attrs.media;
     const items = [
       <Button
@@ -103,9 +105,11 @@ export default class ShelfControl extends Component {
       >
         {mine?.status === 'done' && mine.doneOn ? t(`menu.done_on_${v}`, { date: date(mine.doneOn) }) : t(`menu.log_${v}`)}
       </Button>,
-      <Button icon={mine?.owned ? 'fas fa-check' : 'fas fa-box-archive'} onclick={() => this.change({ owned: !mine?.owned })}>
-        {t('menu.collection')}
-      </Button>,
+      curioHandlesCollections() ? null : (
+        <Button icon={owned ? 'fas fa-check' : 'fas fa-box-archive'} onclick={() => this.change({ owned: !owned })}>
+          {t('menu.collection')}
+        </Button>
+      ),
       <Button icon="fas fa-list" onclick={() => app.modal.show(() => import('./AddToListModal'), { media })}>
         {t('menu.add_to_list')}
       </Button>,

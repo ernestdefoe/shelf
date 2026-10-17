@@ -6,9 +6,12 @@ import Placeholder from 'flarum/common/components/Placeholder';
 import EntryCard from './EntryCard';
 import ListCard from './ListCard';
 import ListEditModal from './ListEditModal';
-import { t } from '../util';
+import { t, curioHandlesCollections } from '../util';
 
 const FILTERS = ['all', 'rated', 'done', 'want', 'owned'];
+
+/** The collection filter steps aside when Curio holds collections. */
+const filters = () => (curioHandlesCollections() ? FILTERS.filter((key) => key !== 'owned') : FILTERS);
 const PAGE = 24;
 
 /** A member's shelf: their lists, then everything they rated or logged. */
@@ -86,7 +89,7 @@ export default class ShelfPage extends UserPage {
           <div className="ShelfPage-heading">
             <h2>{t('profile.shelf_heading')}</h2>
             <div className="ButtonGroup ShelfPage-filters" role="group">
-              {FILTERS.map((key) => (
+              {filters().map((key) => (
                 <Button
                   className={this.filter === key ? 'Button Button--primary' : 'Button'}
                   aria-pressed={this.filter === key ? 'true' : 'false'}

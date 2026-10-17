@@ -16,3 +16,10 @@ export const titleOf = (media) => {
   const name = artist ? `${artist} – ${media.title()}` : media.title();
   return media.year() ? `${name} (${media.year()})` : name;
 };
+
+/**
+ * With Curio installed, collections live there: Shelf's own "In my collection"
+ * steps aside (members' earlier entries can be copied over with
+ * `php flarum curio:import-shelf`).
+ */
+export const curioHandlesCollections = () => 'ernestdefoe-curio' in (globalThis.flarum?.extensions || {});

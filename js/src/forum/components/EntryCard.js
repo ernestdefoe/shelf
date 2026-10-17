@@ -1,6 +1,6 @@
 import poster from './Poster';
 import Stars from './Stars';
-import { t, verb, date, titleOf } from '../util';
+import { t, verb, date, titleOf, curioHandlesCollections } from '../util';
 
 /** One title on a member's shelf: poster, name, their stars and when they got to it. */
 export default function EntryCard(entry) {
@@ -15,7 +15,7 @@ export default function EntryCard(entry) {
       <div className="ShelfCard-body">
         <b className="ShelfCard-title">{titleOf(media)}</b>
         {entry.rating() ? <Stars value={entry.rating()} size="small" /> : null}
-        {entry.owned() ? (
+        {entry.owned() && !curioHandlesCollections() ? (
           <span className="ShelfCard-status ShelfCard-status--owned">
             <i className="fas fa-box-archive" aria-hidden="true" /> {t('status.owned')}
           </span>

@@ -49,6 +49,7 @@ Shelves and lists are public to anyone who can see the member's profile.
 - **Titles link to their discussions.** A title on a shelf, a list or the top-rated page links to the busiest discussion about it the viewer is allowed to see, or to nothing.
 - **What can be rated.** Any title Marquee has stored, which is every title someone has linked a discussion to.
 - **Lists are capped** at 50 per member and 500 titles per list.
+- **With [Curio](https://github.com/ernestdefoe/curio) installed, collections live there.** Shelf's "In my collection" steps aside, and Marquee cards get Curio's "Add to collection" instead. Run `php flarum curio:import-shelf` once to copy members' existing collection titles into Curio.
 
 ## Updating
 
