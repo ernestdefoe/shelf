@@ -1,6 +1,9 @@
 import app from 'flarum/forum/app';
 import TopRatedList from './components/TopRatedList';
 import { t } from './util';
+import { read } from './topStore';
+import { topRated } from './api';
+import { fof, hasFofWidgets, placed } from '../common/fofWidgets';
 
 /**
  * Offer the top-rated list to the widget hosts a forum may run: Bespoke and
@@ -47,11 +50,9 @@ export default function registerWidgets() {
     });
   }
 
-  if ('fof-forum-widgets-core' in flarum.extensions) {
-    const widgetsMod = flarum.reg?.get?.('fof-forum-widgets-core', 'common/extend/Widgets');
-    const widgetMod = flarum.reg?.get?.('fof-forum-widgets-core', 'common/components/Widget');
-    const Widgets = widgetsMod?.default ?? widgetsMod;
-    const WidgetBase = widgetMod?.default ?? widgetMod;
+  if (hasFofWidgets() && app.widgets) {
+    const Widgets = fof('common/extend/Widgets');
+    const WidgetBase = fof('common/components/Widget');
     if (!Widgets || !WidgetBase) return;
 
     class ShelfTopRatedWidget extends WidgetBase {
@@ -73,7 +74,18 @@ export default function registerWidgets() {
     }
 
     new Widgets()
-      .add({ key: 'shelfTopRated', component: ShelfTopRatedWidget, isDisabled: false, isUnique: true, placement: 'end', position: 2 })
+      .add({
+        key: 'shelfTopRated',
+        component: ShelfTopRatedWidget,
+        // 🚨 Opt-in: only where the admin placed it in FoF's layout editor (see
+        // common/fofWidgets.js), and only once this month's list has titles in
+        // it — the same shared query TopRatedList reads, so no extra request.
+        isDisabled: () =>
+          !placed(app, 'ernestdefoe-shelf', 'shelfTopRated') || !read({ period: 'month', limit: 5 }, topRated, () => m.redraw()).items?.length,
+        isUnique: true,
+        placement: 'end',
+        position: 2,
+      })
       .extend(app, 'ernestdefoe-shelf');
   }
 }

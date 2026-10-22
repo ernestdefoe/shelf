@@ -14,7 +14,7 @@ A [Flarum 2](https://flarum.org) companion to [Marquee](https://github.com/ernes
 - **Public lists.** Put titles on lists such as "Best of the decade", straight from the card or by starting a new list there. Each list has its own page; its owner drags titles into order, removes them, renames or deletes it.
 - **A Shelf tab on every profile.** The member's lists, then everything they rated or logged, filterable by rated, logged and want-to.
 - **Top rated.** `/shelf` (linked from the forum's sidebar) lists the best-rated titles this month, this year or ever, by kind. A title needs a minimum number of ratings in the period (two by default, set in the admin panel), so one member's five stars can't top it.
-- **A widget, if you use one.** The top-rated list is offered to [Bespoke](https://github.com/ernestdefoe/bespoke) and to [FoF Forum Widgets](https://github.com/FriendsOfFlarum/forum-widgets-core). Neither is needed: the page and its sidebar link are always there.
+- **A widget, if you use one.** The top-rated list is offered to [Bespoke](https://github.com/ernestdefoe/bespoke) and to [FoF Forum Widgets](https://github.com/FriendsOfFlarum/forum-widgets-core). Neither is needed: the page and its sidebar link are always there. In FoF Forum Widgets it shows once you drag it into a section of the layout editor, and only while the month's list has titles.
 - **Translatable.** Every word on screen comes from the language files.
 
 ![A member's Shelf tab](https://raw.githubusercontent.com/ernestdefoe/shelf/main/.github/screenshots/profile.jpg)
