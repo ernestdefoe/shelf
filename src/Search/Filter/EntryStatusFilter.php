@@ -2,6 +2,9 @@
 
 namespace Ernestdefoe\Shelf\Search\Filter;
 
+use Ernestdefoe\Shelf\Entry;
+use Flarum\Foundation\ValidationException;
+use Flarum\Locale\TranslatorInterface;
 use Flarum\Search\Database\DatabaseSearchState;
 use Flarum\Search\Filter\FilterInterface;
 use Flarum\Search\SearchState;
@@ -13,6 +16,11 @@ use Flarum\Search\ValidateFilterTrait;
 class EntryStatusFilter implements FilterInterface
 {
     use ValidateFilterTrait;
+
+    public function __construct(
+        private TranslatorInterface $translator
+    ) {
+    }
 
     public function getFilterKey(): string
     {
@@ -30,8 +38,10 @@ class EntryStatusFilter implements FilterInterface
             $negate ? $query->whereNull('shelf_entries.rating') : $query->whereNotNull('shelf_entries.rating');
         } elseif ($value === 'owned') {
             $query->where('shelf_entries.owned', ! $negate);
-        } else {
+        } elseif (in_array($value, Entry::STATUSES, true)) {
             $query->where('shelf_entries.status', $negate ? '!=' : '=', $value);
+        } else {
+            throw new ValidationException(['status' => $this->translator->trans('validation.in', ['attribute' => 'status'])]);
         }
     }
 }

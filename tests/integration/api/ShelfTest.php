@@ -173,6 +173,8 @@ class ShelfTest extends TestCase
         $this->rate(3, 1, ['rating' => 8]);
 
         $collection = $this->json($this->get('/api/shelf-entries', ['filter' => ['user' => '3', 'status' => 'owned']]));
+        // An unknown status is a clear 422, not an empty page.
+        $this->assertSame(422, $this->get('/api/shelf-entries', ['filter' => ['user' => '3', 'status' => 'loved']])->getStatusCode());
         $this->assertSame(['4'], array_map(fn ($entry) => $entry['relationships']['media']['data']['id'], $collection['data']));
 
         // Taking it out of the collection leaves nothing to keep.
@@ -271,6 +273,9 @@ class ShelfTest extends TestCase
         // Adding twice does nothing.
         $this->list(3, ['add' => 4], $id);
         $this->list(3, ['remove' => 1], $id);
+        $ordered = $this->json($this->list(3, ['order' => [4, 3]], $id));
+        // A title listed twice takes its last position; titles not on the list are ignored.
+        $this->assertSame(['/p3.jpg', '/p4.jpg'], array_column($this->json($this->list(3, ['order' => [4, 999, 3, 4]], $id))['data']['attributes']['preview'], 'poster'));
         $ordered = $this->json($this->list(3, ['order' => [4, 3]], $id));
 
         $this->assertSame(2, $ordered['data']['attributes']['itemCount']);

@@ -111,10 +111,19 @@ class ListResource extends AbstractDatabaseResource
                 ]);
             }
 
-            if (isset($change['order'])) {
-                foreach (array_values($change['order']) as $position => $mediaId) {
-                    (clone $items)->where('media_id', $mediaId)->update(['position' => $position]);
+            if (isset($change['order']) && $change['order']) {
+                // One UPDATE for the whole list (up to MAX_ITEMS titles), not one per title.
+                // Keys and positions are ints (intval'd in the setter), so inlining them is safe.
+                $positions = array_flip(array_values($change['order']));
+                $column = $this->db->getQueryGrammar()->wrap('media_id');
+                $case = 'CASE '.$column;
+                foreach ($positions as $mediaId => $position) {
+                    $case .= ' WHEN '.(int) $mediaId.' THEN '.(int) $position;
                 }
+
+                (clone $items)
+                    ->whereIn('media_id', array_keys($positions))
+                    ->update(['position' => $this->db->raw($case.' END')]);
             }
 
             $model->item_count = (clone $items)->count();
