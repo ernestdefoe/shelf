@@ -13,19 +13,55 @@ import { extend } from 'flarum/common/extend';
  * editor's list of available widgets.
  */
 
+import type Mithril from 'mithril';
+
+/** A widget instance in FoF's saved layout. */
+interface Placed {
+  id?: string;
+}
+
+/** A saved layout: where widgets are placed, and the ones left out. */
+interface Layout {
+  instances?: (Placed | null)[];
+  disabled?: string[];
+}
+
+/** FoF's layout editor, as far as Shelf touches it. */
+interface LayoutEditor {
+  config?: Layout;
+  oninit(): void;
+}
+
+/** What FoF keeps on the app: its widget manager and the saved layout. */
+export interface WidgetHost {
+  widgets?: {
+    widgets: { extension: string }[];
+    config?: Layout;
+  };
+}
+
+/** A widget offered to FoF's layout editor. */
+export interface EditorWidget {
+  key: string;
+  icon: string;
+  title: () => Mithril.Children;
+  placement?: string;
+}
+
 /** A module of fof/forum-widgets-core, at runtime — never a build-time import. */
-export function fof(path) {
-  const mod = globalThis.flarum?.reg?.get?.('fof-forum-widgets-core', path);
+// `any`: FoF ships no typings, and its classes are only known at run time.
+export function fof(path: string): any {
+  const mod = flarum.reg.get('fof-forum-widgets-core', path) as { default?: unknown } | undefined;
   return mod?.default ?? mod;
 }
 
-export function hasFofWidgets() {
-  return !!globalThis.flarum?.extensions && 'fof-forum-widgets-core' in globalThis.flarum.extensions;
+export function hasFofWidgets(): boolean {
+  return 'fof-forum-widgets-core' in flarum.extensions;
 }
 
 /** Whether the saved layout places this widget in a section. */
-export function placed(app, extension, key) {
-  return (app.widgets?.config?.instances || []).some((i) => i?.id === `${extension}:${key}`);
+export function placed(host: WidgetHost, extension: string, key: string): boolean {
+  return (host.widgets?.config?.instances || []).some((i) => i?.id === `${extension}:${key}`);
 }
 
 /**
@@ -34,18 +70,19 @@ export function placed(app, extension, key) {
  * no saved layout places goes in the editor's list of available widgets, not
  * into a section — FoF would otherwise draw it placed, while the forum rightly
  * shows nothing until it is saved.
- *
- * @param {object} app the admin app
- * @param {string} extension the extension id
- * @param {{ key: string, icon: string, title: () => any, placement?: string }[]} widgets
  */
-export function registerEditorWidgets(app, extension, widgets) {
+export function registerEditorWidgets(app: object, extension: string, widgets: EditorWidget[]): void {
   const Widgets = fof('common/extend/Widgets');
   const WidgetEditor = fof('admin/components/WidgetEditor');
   if (!Widgets || !WidgetEditor) return;
 
-  extend(WidgetEditor.prototype, 'oninit', function () {
-    const manager = app.widgets;
+  const host = app as WidgetHost;
+
+  // FoF has no public hook for this: its editor is the only place that knows
+  // which widgets a layout leaves out, and without this an unplaced widget
+  // shows on every forum (see the OPT-IN note above). Skipped if FoF moves it.
+  extend(WidgetEditor.prototype as LayoutEditor, 'oninit', function () {
+    const manager = host.widgets;
     if (!manager) return;
 
     if (!manager.widgets.some((w) => w.extension === extension)) {
@@ -65,7 +102,7 @@ export function registerEditorWidgets(app, extension, widgets) {
       add.extend(app, extension);
     }
 
-    const config = this.config || {};
+    const config: Layout = this.config || {};
     const disabled = config.disabled || [];
     const unplaced = widgets
       .map((w) => `${extension}:${w.key}`)

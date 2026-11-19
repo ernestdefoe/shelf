@@ -12,8 +12,12 @@ use Flarum\Api\Schema;
 use Flarum\Api\Sort\SortColumn;
 use Flarum\Foundation\ValidationException;
 use Flarum\Locale\TranslatorInterface;
+use Flarum\User\User;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Tobyz\JsonApiServer\Context as OriginalContext;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
+use WeakMap;
 
 /**
  * A member's public list. Titles are added, removed and reordered through
@@ -23,14 +27,20 @@ use Tobyz\JsonApiServer\Context as OriginalContext;
  */
 class ListResource extends AbstractDatabaseResource
 {
-    /** @var array<int, array{add?: int, remove?: int, order?: int[]}> */
-    private array $changes = [];
+    /**
+     * Each list's pending changes (add, remove: a title id; order: title ids)
+     * until it is saved; gone with the list object if the save never happens.
+     *
+     * @var WeakMap<ShelfList, array<string, mixed>>
+     */
+    private WeakMap $changes;
 
     public function __construct(
         private DiscussionLinks $links,
         private TranslatorInterface $translator,
         private ConnectionInterface $db
     ) {
+        $this->changes = new WeakMap();
     }
 
     public function type(): string
@@ -48,6 +58,7 @@ class ListResource extends AbstractDatabaseResource
         return [
             Endpoint\Index::make()
                 ->paginate(20, 50)
+                ->before($this->refuseTitles(...))
                 ->defaultInclude(['user'])
                 ->defaultSort('-updatedAt'),
             Endpoint\Show::make()
@@ -67,6 +78,22 @@ class ListResource extends AbstractDatabaseResource
         ];
     }
 
+    /**
+     * A page holds up to 50 lists of up to 500 titles each, so titles come
+     * with one list at a time (Show), never with the index.
+     */
+    private function refuseTitles(Context $context): void
+    {
+        $include = $context->queryParam('include', '');
+        $paths = is_array($include) ? $include : explode(',', (string) $include);
+
+        foreach ($paths as $path) {
+            if (strtok(trim((string) $path), '.') === 'media') {
+                throw (new BadRequestException('Invalid include [media]'))->setSource(['parameter' => 'include']);
+            }
+        }
+    }
+
     public function creating(object $model, OriginalContext $context): ?object
     {
         /** @var ShelfList $model */
@@ -84,58 +111,27 @@ class ListResource extends AbstractDatabaseResource
     public function saved(object $model, OriginalContext $context): ?object
     {
         /** @var ShelfList $model */
-        $change = $this->changes[spl_object_id($model)] ?? null;
-        unset($this->changes[spl_object_id($model)]);
+        $change = $this->changes[$model] ?? null;
+        unset($this->changes[$model]);
 
         if (! $change) {
             return $model;
         }
 
         $this->db->transaction(function () use ($model, $change) {
-            $items = $this->db->table('shelf_list_items')->where('list_id', $model->id);
-
             if (isset($change['remove'])) {
-                (clone $items)->where('media_id', $change['remove'])->delete();
+                $model->media()->detach($change['remove']);
             }
 
-            if (isset($change['add']) && ! (clone $items)->where('media_id', $change['add'])->exists()) {
-                if ((clone $items)->count() >= ShelfList::MAX_ITEMS) {
-                    throw new ValidationException(['add' => $this->translator->trans('ernestdefoe-shelf.api.list_full', ['count' => ShelfList::MAX_ITEMS])]);
-                }
-
-                $this->db->table('shelf_list_items')->insert([
-                    'list_id' => $model->id,
-                    'media_id' => $change['add'],
-                    'position' => ((int) (clone $items)->max('position')) + 1,
-                    'created_at' => Carbon::now(),
-                ]);
+            if (isset($change['add'])) {
+                $this->add($model, $change['add']);
             }
 
             if (isset($change['order']) && $change['order']) {
-                // One UPDATE for the whole list (up to MAX_ITEMS titles), not one per title.
-                // Keys and positions are ints (intval'd in the setter), so inlining them is safe.
-                $positions = array_flip(array_values($change['order']));
-                $column = $this->db->getQueryGrammar()->wrap('media_id');
-                $case = 'CASE '.$column;
-                foreach ($positions as $mediaId => $position) {
-                    $case .= ' WHEN '.(int) $mediaId.' THEN '.(int) $position;
-                }
-
-                (clone $items)
-                    ->whereIn('media_id', array_keys($positions))
-                    ->update(['position' => $this->db->raw($case.' END')]);
+                $this->reorder($model, $change['order']);
             }
 
-            $model->item_count = (clone $items)->count();
-            $model->preview = (clone $items)
-                ->join('marquee_media', 'marquee_media.id', '=', 'shelf_list_items.media_id')
-                ->orderBy('shelf_list_items.position')
-                ->limit(4)
-                ->get(['marquee_media.poster', 'marquee_media.kind'])
-                ->map(fn ($row) => ['poster' => $row->poster, 'kind' => $row->kind])
-                ->all();
-            $model->updated_at = Carbon::now();
-            $model->saveQuietly();
+            $this->summarise($model);
         });
 
         $model->unsetRelation('media');
@@ -143,9 +139,65 @@ class ListResource extends AbstractDatabaseResource
         return $model;
     }
 
+    /** At the end of the list, unless it is there already. */
+    private function add(ShelfList $list, int $mediaId): void
+    {
+        $items = $list->media()->newPivotQuery();
+
+        if ((clone $items)->where('media_id', $mediaId)->exists()) {
+            return;
+        }
+
+        if ((clone $items)->count() >= ShelfList::MAX_ITEMS) {
+            throw new ValidationException(['add' => $this->translator->trans('ernestdefoe-shelf.api.list_full', ['count' => ShelfList::MAX_ITEMS])]);
+        }
+
+        $list->media()->attach($mediaId, [
+            'position' => ((int) (clone $items)->max('position')) + 1,
+            'created_at' => Carbon::now(),
+        ]);
+    }
+
+    /** @param int[] $order every title's id, in the new order */
+    private function reorder(ShelfList $list, array $order): void
+    {
+        // A title listed twice takes its last position; titles not on the list are ignored.
+        $positions = array_intersect_key(array_flip(array_values($order)), array_flip($list->media()->newPivotQuery()->pluck('media_id')->all()));
+
+        // One statement for the whole list (up to MAX_ITEMS titles), not one per title:
+        // every row exists, so the upsert only ever updates `position`.
+        $list->media()->newPivotStatement()->upsert(
+            array_map(fn ($mediaId, $position) => ['list_id' => $list->id, 'media_id' => $mediaId, 'position' => $position, 'created_at' => Carbon::now()], array_keys($positions), $positions),
+            ['list_id', 'media_id'],
+            ['position']
+        );
+    }
+
+    /** The count and first four posters, kept on the list so list cards cost nothing. */
+    private function summarise(ShelfList $list): void
+    {
+        $list->item_count = $list->media()->newPivotQuery()->count();
+        $list->preview = $list->media()
+            ->limit(4)
+            ->get(['marquee_media.poster', 'marquee_media.kind'])
+            ->map(fn ($media) => ['poster' => $media->poster, 'kind' => $media->kind])
+            ->all();
+        $list->updated_at = Carbon::now();
+        $list->saveQuietly();
+    }
+
+    /**
+     * Lists of members the viewer can't see stay hidden when fetched by id
+     * too, as they are from the index (ListSearcher).
+     */
+    public function scope(Builder $query, OriginalContext $context): void
+    {
+        $query->whereIn('shelf_lists.user_id', User::query()->whereVisibleTo($context->getActor())->select('users.id'));
+    }
+
     private function change(ShelfList $list, string $key, mixed $value): void
     {
-        $this->changes[spl_object_id($list)][$key] = $value;
+        $this->changes[$list] = [$key => $value] + ($this->changes[$list] ?? []);
     }
 
     public function fields(): array

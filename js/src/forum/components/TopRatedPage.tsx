@@ -1,9 +1,10 @@
 import app from 'flarum/forum/app';
-import Page from 'flarum/common/components/Page';
+import Page, { type IPageAttrs } from 'flarum/common/components/Page';
 import Button from 'flarum/common/components/Button';
 import PageStructure from 'flarum/forum/components/PageStructure';
 import IndexSidebar from 'flarum/forum/components/IndexSidebar';
 import extractText from 'flarum/common/utils/extractText';
+import type Mithril from 'mithril';
 import TopRatedList from './TopRatedList';
 import { t } from '../util';
 
@@ -11,22 +12,26 @@ const PERIODS = ['month', 'year', 'all'];
 
 /** /shelf: the best-rated titles this month, this year or ever, by kind. */
 export default class TopRatedPage extends Page {
-  oninit(vnode) {
+  period = 'month';
+  kind = '';
+
+  oninit(vnode: Mithril.Vnode<IPageAttrs, this>) {
     super.oninit(vnode);
-    this.period = PERIODS.includes(m.route.param('period')) ? m.route.param('period') : 'month';
+    const period = m.route.param('period');
+    this.period = PERIODS.includes(period) ? period : 'month';
     this.kind = m.route.param('kind') || '';
     this.bodyClass = 'App--shelfTop';
     app.history.push('shelf.top', extractText(t('top.title')));
   }
 
-  oncreate(vnode) {
+  oncreate(vnode: Mithril.VnodeDOM<IPageAttrs, this>) {
     super.oncreate(vnode);
     app.setTitle(extractText(t('top.title')));
   }
 
   /** Only the kinds this forum has tagged for Marquee. */
-  kinds() {
-    return [...new Set(Object.values(app.forum.attribute('marqueeTags') || {}))];
+  kinds(): string[] {
+    return [...new Set(Object.values(app.forum.attribute<Record<string, string> | null>('marqueeTags') || {}))];
   }
 
   view() {
@@ -51,7 +56,7 @@ export default class TopRatedPage extends Page {
     );
   }
 
-  choice(key, value, label) {
+  choice(key: 'period' | 'kind', value: string, label: Mithril.Children) {
     const on = this[key] === value;
     return (
       <Button
@@ -59,7 +64,7 @@ export default class TopRatedPage extends Page {
         aria-pressed={on ? 'true' : 'false'}
         onclick={() => {
           this[key] = value;
-          const params = {};
+          const params: Record<string, string> = {};
           if (this.period !== 'month') params.period = this.period;
           if (this.kind) params.kind = this.kind;
           window.history.replaceState(null, '', app.route('shelf.top', params));

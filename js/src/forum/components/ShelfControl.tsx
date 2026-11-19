@@ -1,30 +1,32 @@
 import app from 'flarum/forum/app';
-import Component from 'flarum/common/Component';
+import Component, { type ComponentAttrs } from 'flarum/common/Component';
 import Dropdown from 'flarum/common/components/Dropdown';
 import Button from 'flarum/common/components/Button';
 import Separator from 'flarum/common/components/Separator';
 import abbreviateNumber from 'flarum/common/utils/abbreviateNumber';
+import type Mithril from 'mithril';
 import Stars from './Stars';
 import { saveEntry } from '../api';
-import { reaverage } from '../rating';
+import { reaverage, type MyEntry, type Shelf } from '../rating';
 import { t, text, verb, canShelve, date, curioHandlesCollections } from '../util';
+
+export interface ShelfControlAttrs extends ComponentAttrs {
+  media: MarqueeMedia;
+}
 
 /**
  * On a Marquee card: the members' average, the viewer's own stars, and the
  * shelf menu (want to …, log it with a date, add to a list, remove).
  */
-export default class ShelfControl extends Component {
-  oninit(vnode) {
-    super.oninit(vnode);
-    this.saving = false;
-  }
+export default class ShelfControl extends Component<ShelfControlAttrs> {
+  saving = false;
 
-  shelf() {
-    return this.attrs.media.attribute('shelf') || { average: null, count: 0, mine: null };
+  shelf(): Shelf {
+    return this.attrs.media.attribute<Shelf | undefined>('shelf') || { average: null, count: 0, mine: null };
   }
 
   /** Apply a change now, save it, and put things back if the save fails. */
-  change(changes) {
+  change(changes: Partial<MyEntry>) {
     const media = this.attrs.media;
     const before = this.shelf();
     const mine = before.mine;
@@ -34,9 +36,10 @@ export default class ShelfControl extends Component {
     media.pushAttributes({ shelf: { ...after, mine: optimistic.rating || optimistic.status || optimistic.owned ? optimistic : null } });
     this.saving = true;
 
-    return saveEntry(media.id(), mine, changes)
+    return saveEntry(media, mine, changes)
       .then(
         (saved) => media.pushAttributes({ shelf: { ...this.shelf(), mine: saved } }),
+        // app.request already showed the alert; the card goes back to how it was.
         () => media.pushAttributes({ shelf: before })
       )
       .finally(() => {
@@ -46,38 +49,30 @@ export default class ShelfControl extends Component {
   }
 
   view() {
-    const { media } = this.attrs;
     const shelf = this.shelf();
     const mine = shelf.mine;
-    const kind = media.kind();
-    const v = verb(kind);
+    const v = verb(this.attrs.media.kind());
     // Ownership is Curio's when it is installed.
     const owned = !!mine?.owned && !curioHandlesCollections();
 
     return (
       <div className="ShelfControl">
-        {shelf.count ? (
+        {shelf.count && shelf.average !== null ? (
           <span className="ShelfControl-average" title={text('card.average_title', { count: shelf.count })}>
             <i className="fas fa-star" aria-hidden="true" /> <b>{shelf.average.toFixed(1)}</b>{' '}
             <small>{t('card.ratings', { count: shelf.count, formatted: abbreviateNumber(shelf.count) })}</small>
           </span>
         ) : null}
 
-        {canShelve() ? <Stars value={mine?.rating} label={text('card.rate_label')} onchange={(rating) => this.change({ rating })} /> : null}
+        {canShelve() ? (
+          <Stars value={mine?.rating} label={text('card.rate_label')} onchange={(rating: number | null) => this.change({ rating })} />
+        ) : null}
 
         {canShelve() ? (
           <Dropdown
             className="ShelfControl-menu"
             buttonClassName={mine?.status || owned ? 'Button ShelfControl-button is-on' : 'Button ShelfControl-button'}
-            icon={
-              mine?.status === 'done'
-                ? 'fas fa-check'
-                : mine?.status === 'want'
-                  ? 'fas fa-bookmark'
-                  : owned
-                    ? 'fas fa-box-archive'
-                    : 'fas fa-layer-group'
-            }
+            icon={this.menuIcon(mine, owned)}
             label={mine?.status ? t(`status.${mine.status}_${v}`) : owned ? t('status.owned') : t('card.add_to_shelf')}
             accessibleToggleLabel={text('card.add_to_shelf')}
           >
@@ -88,9 +83,15 @@ export default class ShelfControl extends Component {
     );
   }
 
-  menuItems(mine, v, owned) {
+  menuIcon(mine: MyEntry | null, owned: boolean): string {
+    if (mine?.status === 'done') return 'fas fa-check';
+    if (mine?.status === 'want') return 'fas fa-bookmark';
+    return owned ? 'fas fa-box-archive' : 'fas fa-layer-group';
+  }
+
+  menuItems(mine: MyEntry | null, v: string, owned: boolean): Mithril.Children[] {
     const media = this.attrs.media;
-    const items = [
+    const items: Mithril.Children[] = [
       <Button
         icon={mine?.status === 'want' ? 'fas fa-check' : 'far fa-bookmark'}
         onclick={() => this.change({ status: mine?.status === 'want' ? null : 'want' })}
@@ -100,7 +101,7 @@ export default class ShelfControl extends Component {
       <Button
         icon={mine?.status === 'done' ? 'fas fa-check' : 'far fa-calendar-check'}
         onclick={() =>
-          app.modal.show(() => import('./LogModal'), { media, entry: mine, onsave: (doneOn) => this.change({ status: 'done', doneOn }) })
+          app.modal.show(() => import('./LogModal'), { media, entry: mine, onsave: (doneOn: string) => this.change({ status: 'done', doneOn }) })
         }
       >
         {mine?.status === 'done' && mine.doneOn ? t(`menu.done_on_${v}`, { date: date(mine.doneOn) }) : t(`menu.log_${v}`)}

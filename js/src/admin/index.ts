@@ -1,7 +1,7 @@
 import app from 'flarum/admin/app';
-import { registerEditorWidgets } from './src/common/fofWidgets';
+import { registerEditorWidgets } from '../common/fofWidgets';
 
-export { default as extend } from './src/admin/extend';
+export { default as extend } from './extend';
 
 // FoF's layout editor lists only widgets the admin registers too.
 app.initializers.add('ernestdefoe-shelf', () => {

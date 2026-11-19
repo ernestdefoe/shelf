@@ -53,6 +53,7 @@ class TopRated
             ->when($since, fn ($q) => $q->where('shelf_entries.rated_at', '>=', $since))
             ->when($kind, fn ($q) => $q->where('marquee_media.kind', $kind))
             ->groupBy('marquee_media.id', 'marquee_media.kind', 'marquee_media.title', 'marquee_media.year', 'marquee_media.poster')
+            // Aggregates per title: the builder has no grouped AVG/COUNT, so these two are raw.
             ->havingRaw('COUNT(*) >= ?', [$min])
             ->select('marquee_media.id', 'marquee_media.kind', 'marquee_media.title', 'marquee_media.year', 'marquee_media.poster')
             ->selectRaw('AVG(rating) AS average, COUNT(*) AS ratings')

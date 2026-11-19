@@ -11,6 +11,11 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
+/**
+ * The top-rated titles: a cached aggregate over every member's ratings, not a
+ * model, so it has no JSON:API resource to live on. Read-only; each title's
+ * discussion link is worked out for the viewer.
+ */
 class TopRatedController implements RequestHandlerInterface
 {
     public function __construct(private TopRated $top, private DiscussionLinks $links)

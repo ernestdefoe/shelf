@@ -65,3 +65,30 @@ jobs:
             git diff --stat -- js/dist
             exit 1
           fi
+
+  typings:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      # Core's typings (vendor/flarum/core/js/dist-typings) come with flarum/core.
+      - name: Install core
+        run: composer install --no-dev --no-progress --no-interaction
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+
+      - name: Install
+        working-directory: js
+        run: npm ci
+
+      - name: Check typings
+        working-directory: js
+        run: npm run check-typings

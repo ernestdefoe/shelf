@@ -43,11 +43,37 @@ class ShelfTest extends TestCase
                 $media(4, 'game', 'Hades'),
             ],
             Discussion::class => [
-                ['id' => 1, 'title' => 'The Matrix (1999)', 'slug' => 'the-matrix', 'user_id' => 1, 'created_at' => $now, 'comment_count' => 3, 'marquee_media_id' => 1],
+                ['id' => 1, 'title' => 'The Matrix (1999)', 'slug' => 'the-matrix', 'user_id' => 1, 'created_at' => $now, 'comment_count' => 3],
                 // Hidden: nobody but staff should be sent to it.
-                ['id' => 2, 'title' => 'Dune (1965)', 'slug' => 'dune', 'user_id' => 1, 'created_at' => $now, 'comment_count' => 1, 'marquee_media_id' => 2, 'hidden_at' => $now],
+                ['id' => 2, 'title' => 'Dune (1965)', 'slug' => 'dune', 'user_id' => 1, 'created_at' => $now, 'comment_count' => 1, 'hidden_at' => $now],
             ],
         ]);
+        $this->linkDiscussions([1 => [1, null], 2 => [2, null]]);
+    }
+
+    /**
+     * Marquee links, wherever the installed Marquee keeps them: its own table
+     * from 1.21, columns on `discussions` before. Call before the app boots.
+     *
+     * @param array<int, array{0: int, 1: int|null}> $links discussion id => [title id, season]
+     */
+    private function linkDiscussions(array $links): void
+    {
+        if (class_exists(\Ernestdefoe\Marquee\Link::class)) {
+            $this->prepareDatabase(['marquee_discussions' => array_map(
+                fn ($id, $link) => ['discussion_id' => $id, 'media_id' => $link[0], 'season' => $link[1]],
+                array_keys($links),
+                $links
+            )]);
+
+            return;
+        }
+
+        foreach ($this->databaseContent[Discussion::class] as &$row) {
+            if (isset($links[$row['id']])) {
+                $row += ['marquee_media_id' => $links[$row['id']][0], 'marquee_season' => $links[$row['id']][1]];
+            }
+        }
     }
 
     private function json(ResponseInterface $response): array
@@ -306,5 +332,143 @@ class ShelfTest extends TestCase
 
         $this->assertSame(403, $this->rate(3, 1, ['rating' => 6])->getStatusCode());
         $this->assertSame(403, $this->list(3, ['name' => 'Nope'])->getStatusCode());
+    }
+
+    #[Test]
+    public function a_title_links_to_its_whole_show_discussion_before_a_seasons_one(): void
+    {
+        $now = Carbon::now()->toDateTimeString();
+        $this->prepareDatabase([
+            'marquee_media' => [['id' => 5, 'kind' => 'tv', 'external_id' => '1396', 'title' => 'Breaking Bad', 'fetched_at' => $now, 'data' => '{}']],
+            Discussion::class => [
+                ['id' => 3, 'title' => 'Season 1', 'slug' => 'season-1', 'user_id' => 1, 'created_at' => $now, 'comment_count' => 9],
+                ['id' => 4, 'title' => 'The show', 'slug' => 'the-show', 'user_id' => 1, 'created_at' => $now, 'comment_count' => 1],
+            ],
+        ]);
+        $this->linkDiscussions([3 => [5, 1], 4 => [5, null]]);
+
+        $links = $this->app()->getContainer()->make(\Ernestdefoe\Shelf\DiscussionLinks::class);
+        $this->assertSame([5 => '4-the-show', 1 => '1-the-matrix', 2 => null], $links->load(\Flarum\User\User::query()->find(3), [5, 1, 2]));
+
+        $this->database()->table('discussions')->where('id', 4)->update(['hidden_at' => $now, 'hidden_user_id' => 1]);
+        $this->assertSame([5 => '3-season-1'], $links->load(\Flarum\User\User::query()->find(3), [5]));
+    }
+
+    /** Related titles (the rest of a series) on a discussion's card, wherever the installed Marquee keeps them. */
+    private function relate(int $discussion, array $mediaIds): void
+    {
+        if (class_exists(\Ernestdefoe\Marquee\Link::class)) {
+            $this->prepareDatabase(['marquee_related' => array_map(
+                fn ($media, $position) => ['discussion_id' => $discussion, 'media_id' => $media, 'position' => $position],
+                $mediaIds,
+                array_keys($mediaIds)
+            )]);
+
+            return;
+        }
+
+        foreach ($this->databaseContent[Discussion::class] as &$row) {
+            if ($row['id'] === $discussion) {
+                $row['marquee_related'] = json_encode($mediaIds);
+            }
+        }
+    }
+
+    #[Test]
+    public function a_card_and_its_related_titles_load_their_ratings_together(): void
+    {
+        $this->relate(1, [2, 3, 4]);
+        $this->rate(3, 1, ['rating' => 8]);
+        $this->rate(4, 3, ['rating' => 6]);
+        $this->rate(3, 4, ['owned' => true]);
+
+        $queries = [];
+        $this->database()->listen(function ($query) use (&$queries) {
+            $queries[] = $query->sql;
+        });
+        $body = $this->json($this->send($this->request('GET', '/api/discussions/1', ['authenticatedAs' => 3])));
+
+        $shelf = collect($body['included'])->where('type', 'marquee-media')->mapWithKeys(fn ($m) => [(int) $m['id'] => $m['attributes']['shelf']]);
+        $this->assertSame([1, 2, 3, 4], $shelf->keys()->sort()->values()->all());
+        $this->assertSame([4.0, 1, 8], [(float) $shelf[1]['average'], $shelf[1]['count'], $shelf[1]['mine']['rating']]);
+        $this->assertSame([null, 0, null], [$shelf[2]['average'], $shelf[2]['count'], $shelf[2]['mine']]);
+        $this->assertSame([3.0, 1, null], [(float) $shelf[3]['average'], $shelf[3]['count'], $shelf[3]['mine']]);
+        $this->assertTrue($shelf[4]['mine']['owned']);
+
+        // Two queries for the four titles, and the related titles loaded once.
+        $this->assertCount(2, array_filter($queries, fn ($sql) => str_contains($sql, 'shelf_entries')));
+        $this->assertLessThanOrEqual(1, count(array_filter($queries, fn ($sql) => str_contains($sql, 'marquee_related'))));
+    }
+
+    #[Test]
+    public function a_list_stays_private_on_a_forum_guests_cannot_see(): void
+    {
+        // A private forum: members may view it, guests may not. Set before the
+        // first request, as permissions are cached once read.
+        $db = $this->database();
+        $db->table('group_permission')->where('group_id', 2)->where('permission', 'viewForum')->delete();
+        $db->table('group_permission')->insert(['group_id' => 3, 'permission' => 'viewForum']);
+        $now = Carbon::now();
+        $db->table('shelf_lists')->insert(['id' => 7, 'user_id' => 3, 'name' => 'Favourites', 'item_count' => 0, 'created_at' => $now, 'updated_at' => $now]);
+
+        $this->assertSame(404, $this->get('/api/shelf-lists/7')->getStatusCode());
+        $this->assertSame([], $this->json($this->get('/api/shelf-lists', ['filter' => ['user' => '3']]))['data'] ?? []);
+        // Members still see it.
+        $this->assertSame(200, $this->get('/api/shelf-lists/7', [], 4)->getStatusCode());
+    }
+
+    #[Test]
+    public function the_forum_says_what_the_viewer_may_do(): void
+    {
+        $member = $this->json($this->get('/api', [], 3))['data']['attributes'];
+        $this->assertTrue($member['canUseShelf']);
+        $this->assertFalse($member['canModerateShelf']);
+
+        $this->assertTrue($this->json($this->get('/api', [], 1))['data']['attributes']['canModerateShelf']);
+    }
+
+    #[Test]
+    public function one_cache_per_request_holds_what_the_endpoint_loaded(): void
+    {
+        $container = $this->app()->getContainer();
+
+        $this->assertSame($container->make(\Ernestdefoe\Shelf\DiscussionLinks::class), $container->make(\Ernestdefoe\Shelf\DiscussionLinks::class));
+        $this->assertSame($container->make(\Ernestdefoe\Shelf\ShelfStats::class), $container->make(\Ernestdefoe\Shelf\ShelfStats::class));
+    }
+
+    #[Test]
+    public function the_list_index_never_carries_every_lists_titles(): void
+    {
+        $id = (int) $this->json($this->list(3, ['name' => 'Favourites', 'add' => 1]))['data']['id'];
+
+        $this->assertSame(400, $this->get('/api/shelf-lists', ['include' => 'media'])->getStatusCode());
+        $this->assertSame(400, $this->get('/api/shelf-lists', ['include' => 'user,media.seasons'])->getStatusCode());
+        $this->assertSame(200, $this->get('/api/shelf-lists', ['include' => 'user'])->getStatusCode());
+        // One list at a time, its titles come along.
+        $this->assertSame(200, $this->get("/api/shelf-lists/$id", ['include' => 'media'])->getStatusCode());
+    }
+
+    #[Test]
+    public function a_title_with_many_discussions_loads_only_the_one_it_links_to(): void
+    {
+        $now = Carbon::now()->toDateTimeString();
+        $discussions = [];
+        $links = [];
+        foreach (range(10, 39) as $id) {
+            $discussions[] = ['id' => $id, 'title' => "Episode $id", 'slug' => "episode-$id", 'user_id' => 1, 'created_at' => $now, 'comment_count' => $id === 27 ? 50 : 2];
+            $links[$id] = [3, 1];
+        }
+        $this->prepareDatabase([Discussion::class => $discussions]);
+        $this->linkDiscussions($links);
+
+        $loaded = 0;
+        $this->app()->getContainer()->make('events')->listen('eloquent.retrieved: '.Discussion::class, function () use (&$loaded) {
+            $loaded++;
+        });
+
+        $links = $this->app()->getContainer()->make(\Ernestdefoe\Shelf\DiscussionLinks::class);
+        $this->assertSame([3 => '27-episode-27', 1 => '1-the-matrix'], $links->load(User::query()->find(3), [3, 1]));
+        // Only the two picked discussions are loaded, not all 31 linked ones.
+        $this->assertSame(2, $loaded);
     }
 }

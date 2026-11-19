@@ -1,16 +1,25 @@
-import app from 'flarum/forum/app';
-import FormModal from 'flarum/common/components/FormModal';
+import FormModal, { type IFormModalAttrs } from 'flarum/common/components/FormModal';
 import Button from 'flarum/common/components/Button';
+import type Mithril from 'mithril';
+import type { ShelfList } from '../models';
 import { t } from '../util';
 import { updateList } from '../api';
 
+export interface ListEditModalAttrs extends IFormModalAttrs {
+  list?: ShelfList;
+  onsave?: (list: ShelfList) => void;
+}
+
 /** Create a list (no `list` attr) or rename and describe one. */
-export default class ListEditModal extends FormModal {
-  oninit(vnode) {
+export default class ListEditModal extends FormModal<ListEditModalAttrs> {
+  name = '';
+  description = '';
+
+  oninit(vnode: Mithril.Vnode<ListEditModalAttrs, this>) {
     super.oninit(vnode);
     const list = this.attrs.list;
     this.name = list ? list.name() : '';
-    this.description = (list && list.description()) || '';
+    this.description = list?.description() || '';
   }
 
   className() {
@@ -33,7 +42,9 @@ export default class ListEditModal extends FormModal {
               maxlength="100"
               required
               value={this.name}
-              oninput={(e) => (this.name = e.target.value)}
+              oninput={(e: InputEvent & { target: HTMLInputElement }) => {
+                this.name = e.target.value;
+              }}
             />
           </div>
           <div className="Form-group">
@@ -44,7 +55,9 @@ export default class ListEditModal extends FormModal {
               rows="3"
               maxlength="1000"
               value={this.description}
-              oninput={(e) => (this.description = e.target.value)}
+              oninput={(e: InputEvent & { target: HTMLTextAreaElement }) => {
+                this.description = e.target.value;
+              }}
             />
           </div>
           <div className="Form-group">
@@ -57,20 +70,13 @@ export default class ListEditModal extends FormModal {
     );
   }
 
-  onsubmit(e) {
+  onsubmit(e: SubmitEvent) {
     e.preventDefault();
     this.loading = true;
 
-    const attributes = { name: this.name.trim(), description: this.description.trim() || null };
-    const save = this.attrs.list
-      ? updateList(this.attrs.list, attributes)
-      : app
-          .request({ method: 'POST', url: `${app.forum.attribute('apiUrl')}/shelf-lists`, body: { data: { type: 'shelf-lists', attributes } } })
-          .then((payload) => app.store.pushPayload(payload));
-
-    save.then((list) => {
+    updateList(this.attrs.list || null, { name: this.name.trim(), description: this.description.trim() || null }).then((list) => {
       this.hide();
-      if (this.attrs.onsave) this.attrs.onsave(list);
+      this.attrs.onsave?.(list);
     }, this.loaded.bind(this));
   }
 }

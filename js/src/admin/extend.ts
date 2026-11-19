@@ -1,11 +1,11 @@
-import { Admin } from 'flarum/common/extenders';
+import Extend from 'flarum/common/extenders';
 import app from 'flarum/admin/app';
 
-const t = (key) => app.translator.trans(`ernestdefoe-shelf.admin.${key}`);
+const t = (key: string) => app.translator.trans(`ernestdefoe-shelf.admin.${key}`);
 
 // Callbacks, not values: this module runs before the app has booted.
 export default [
-  new Admin()
+  new Extend.Admin()
     .setting(() => ({
       setting: 'ernestdefoe-shelf.min_ratings',
       type: 'number',

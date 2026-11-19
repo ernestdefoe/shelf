@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ratingAt, starsLabel, reaverage } from '../src/forum/rating.js';
-import { moved } from '../src/forum/reorder.js';
-import { read, keyOf, clear } from '../src/forum/topStore.js';
+import { ratingAt, starsLabel, reaverage } from '../src/forum/rating.ts';
+import { moved } from '../src/forum/reorder.ts';
+import { read, keyOf, clear } from '../src/forum/topStore.ts';
 
 test('the half star under the pointer', () => {
   assert.equal(ratingAt(0, 100), 1);

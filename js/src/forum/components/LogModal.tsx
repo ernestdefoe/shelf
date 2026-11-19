@@ -1,10 +1,21 @@
-import FormModal from 'flarum/common/components/FormModal';
+import FormModal, { type IFormModalAttrs } from 'flarum/common/components/FormModal';
 import Button from 'flarum/common/components/Button';
+import type Mithril from 'mithril';
+import type { MyEntry } from '../rating';
 import { t, verb, titleOf } from '../util';
 
+export interface LogModalAttrs extends IFormModalAttrs {
+  media: MarqueeMedia;
+  entry?: MyEntry | null;
+  onsave: (doneOn: string) => void;
+}
+
 /** When did you watch / read / play / listen to it? Defaults to today. */
-export default class LogModal extends FormModal {
-  oninit(vnode) {
+export default class LogModal extends FormModal<LogModalAttrs> {
+  today = '';
+  doneOn = '';
+
+  oninit(vnode: Mithril.Vnode<LogModalAttrs, this>) {
     super.oninit(vnode);
     this.today = dayjs().format('YYYY-MM-DD');
     this.doneOn = this.attrs.entry?.doneOn?.slice(0, 10) || this.today;
@@ -31,7 +42,9 @@ export default class LogModal extends FormModal {
               max={this.today}
               min="1900-01-02"
               value={this.doneOn}
-              oninput={(e) => (this.doneOn = e.target.value)}
+              oninput={(e: InputEvent & { target: HTMLInputElement }) => {
+                this.doneOn = e.target.value;
+              }}
               required
             />
           </div>
@@ -45,7 +58,7 @@ export default class LogModal extends FormModal {
     );
   }
 
-  onsubmit(e) {
+  onsubmit(e: SubmitEvent) {
     e.preventDefault();
     this.attrs.onsave(this.doneOn || this.today);
     this.hide();

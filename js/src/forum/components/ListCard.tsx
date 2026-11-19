@@ -1,10 +1,11 @@
 import app from 'flarum/forum/app';
 import Link from 'flarum/common/components/Link';
 import posterUrl from 'ext:ernestdefoe/marquee/forum/utils/posterUrl';
+import type { ShelfList } from '../models';
 import { t } from '../util';
 
 /** A list as a card: up to four posters fanned out, its name and size. */
-export default function ListCard(list) {
+export default function ListCard(list: ShelfList) {
   const preview = list.preview() || [];
 
   return (

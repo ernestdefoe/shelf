@@ -15,9 +15,19 @@
         "flarum/core": "^2.0",
         "ernestdefoe/marquee": "^1.6"
     },
+    "suggest": {
+        "ernestdefoe/curio": "Collections live in Curio when it is installed; Shelf's own \"In my collection\" steps aside.",
+        "ernestdefoe/bespoke": "Place the top-rated list as a Bespoke widget.",
+        "fof/forum-widgets-core": "Place the top-rated list with FoF's widget layout editor."
+    },
     "extra": {
         "flarum-extension": {
             "title": "Shelf",
+            "optional-dependencies": [
+                "ernestdefoe/curio",
+                "ernestdefoe/bespoke",
+                "fof/forum-widgets-core"
+            ],
             "category": "feature",
             "icon": {
                 "name": "fas fa-layer-group",

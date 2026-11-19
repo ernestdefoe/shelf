@@ -5,14 +5,12 @@ use Ernestdefoe\Shelf\Access\OwnerPolicy;
 use Ernestdefoe\Shelf\Api;
 use Ernestdefoe\Shelf\Entry;
 use Ernestdefoe\Shelf\Search;
+use Ernestdefoe\Shelf\ShelfServiceProvider;
 use Ernestdefoe\Shelf\ShelfList;
-use Ernestdefoe\Shelf\TopRated;
-use Flarum\Api\Context;
+use Flarum\Api\Resource\DiscussionResource;
 use Flarum\Api\Resource\ForumResource;
-use Flarum\Api\Schema;
 use Flarum\Extend;
 use Flarum\Search\Database\DatabaseSearchDriver;
-use Flarum\User\User;
 
 return [
     (new Extend\Frontend('forum'))
@@ -28,22 +26,20 @@ return [
 
     new Extend\Locales(__DIR__.'/locale'),
 
-    (new Extend\Model(User::class))
-        ->hasMany('shelfEntries', Entry::class, 'user_id'),
-
     new Extend\ApiResource(Api\EntryResource::class),
     new Extend\ApiResource(Api\ListResource::class),
 
     (new Extend\ApiResource(MediaResource::class))
         ->fields(Api\MediaFields::class),
 
+    (new Extend\ApiResource(DiscussionResource::class))
+        ->endpoint(['show', 'update'], Api\PrimeShelfStats::class),
+
     (new Extend\ApiResource(ForumResource::class))
-        ->fields(fn () => [
-            Schema\Boolean::make('canUseShelf')
-                ->get(fn ($forum, Context $context) => $context->getActor()->hasPermission('ernestdefoe-shelf.use')),
-            Schema\Boolean::make('canModerateShelf')
-                ->get(fn ($forum, Context $context) => $context->getActor()->hasPermission('ernestdefoe-shelf.moderate')),
-        ]),
+        ->fields(Api\ForumFields::class),
+
+    (new Extend\ServiceProvider())
+        ->register(ShelfServiceProvider::class),
 
     (new Extend\Routes('api'))
         ->get('/shelf/top', 'shelf.api.top', Api\TopRatedController::class),
@@ -61,5 +57,5 @@ return [
         ->modelPolicy(ShelfList::class, OwnerPolicy::class),
 
     (new Extend\Settings())
-        ->default(TopRated::MIN_RATINGS, 2),
+        ->default('ernestdefoe-shelf.min_ratings', 2),
 ];
