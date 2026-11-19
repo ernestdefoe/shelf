@@ -12,7 +12,9 @@ use Flarum\Api\Schema;
 use Flarum\Api\Sort\SortColumn;
 use Flarum\Foundation\ValidationException;
 use Flarum\Locale\TranslatorInterface;
+use Flarum\User\User;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Tobyz\JsonApiServer\Context as OriginalContext;
 
 /**
@@ -141,6 +143,15 @@ class ListResource extends AbstractDatabaseResource
         $model->unsetRelation('media');
 
         return $model;
+    }
+
+    /**
+     * Lists of members the viewer can't see stay hidden when fetched by id
+     * too, as they are from the index (ListSearcher).
+     */
+    public function scope(Builder $query, OriginalContext $context): void
+    {
+        $query->whereIn('shelf_lists.user_id', User::query()->whereVisibleTo($context->getActor())->select('users.id'));
     }
 
     private function change(ShelfList $list, string $key, mixed $value): void

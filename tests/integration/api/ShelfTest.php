@@ -307,4 +307,21 @@ class ShelfTest extends TestCase
         $this->assertSame(403, $this->rate(3, 1, ['rating' => 6])->getStatusCode());
         $this->assertSame(403, $this->list(3, ['name' => 'Nope'])->getStatusCode());
     }
+
+    #[Test]
+    public function a_list_stays_private_on_a_forum_guests_cannot_see(): void
+    {
+        // A private forum: members may view it, guests may not. Set before the
+        // first request, as permissions are cached once read.
+        $db = $this->database();
+        $db->table('group_permission')->where('group_id', 2)->where('permission', 'viewForum')->delete();
+        $db->table('group_permission')->insert(['group_id' => 3, 'permission' => 'viewForum']);
+        $now = Carbon::now();
+        $db->table('shelf_lists')->insert(['id' => 7, 'user_id' => 3, 'name' => 'Favourites', 'item_count' => 0, 'created_at' => $now, 'updated_at' => $now]);
+
+        $this->assertSame(404, $this->get('/api/shelf-lists/7')->getStatusCode());
+        $this->assertSame([], $this->json($this->get('/api/shelf-lists', ['filter' => ['user' => '3']]))['data'] ?? []);
+        // Members still see it.
+        $this->assertSame(200, $this->get('/api/shelf-lists/7', [], 4)->getStatusCode());
+    }
 }
